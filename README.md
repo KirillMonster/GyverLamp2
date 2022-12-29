@@ -1,5 +1,4 @@
-.. image:: https://raw.githubusercontent.com/nextcord/nextcord/master/assets/repo-banner.svg
-   :alt: Nextcord
+![](https://github.com/KirillMonster/GyverLamp2/blob/master/assets/banner.png)
 
 ## 💡 GyverLamp2
 📚 Библиотека для управления лампами GyverLamp2 на Python
