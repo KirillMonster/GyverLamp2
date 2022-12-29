@@ -1,4 +1,4 @@
-from typing import Any, Tuple
+from typing import Any
 
 COLORS_RGB = {
     'red': (255, 0, 0,),
@@ -111,14 +111,14 @@ def rgb2chsv(r, g, b) -> tuple[Any, ...]:
     return hsv2chsv(*rgb2hsv(r, g, b))
 
 
-for key, value in COLORS_RGB.items():
-    COLORS_HEX[key] = rgb2hex(*COLORS_RGB[key])
+for __key in COLORS_RGB.keys():
+    COLORS_HEX[__key] = rgb2hex(*COLORS_RGB[__key])
 
 
-for key, value in COLORS_RGB.items():
-    COLORS_HSV[key] = rgb2hsv(*COLORS_RGB[key])
+for __key in COLORS_RGB.keys():
+    COLORS_HSV[__key] = rgb2hsv(*COLORS_RGB[__key])
 
 
-for key, value in COLORS_RGB.items():
-    COLORS_CHSV[key] = rgb2chsv(*COLORS_RGB[key])
+for __key in COLORS_RGB.keys():
+    COLORS_CHSV[__key] = rgb2chsv(*COLORS_RGB[__key])
 

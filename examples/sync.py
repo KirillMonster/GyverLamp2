@@ -3,7 +3,7 @@ from GyverLamp2 import Lamp
 
 lamp = Lamp()
 if not lamp.sync_settings(auto_sync=True, check_ver=True):  # Send a request to synchronize the lamp settings
-    print('Произошла ошибка сихронизации. Проверьте что лампа находится с вами в одной сети')
+    print('Произошла ошибка синхронизации. Проверьте что лампа находится с вами в одной сети')
     exit(0)
 print('Лампа была синхронизирована')
 lamp.save_settings_json()  # сохраняем настройки

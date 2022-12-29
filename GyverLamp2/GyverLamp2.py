@@ -7,18 +7,20 @@ from time import sleep, time
 from copy import deepcopy
 from .gcolor import *
 from .config import *
+from .exceptions import *
 
 
 class Lamp:
-    def __init__(self, key: str = 'GL', ip: str | None = None, port: int | None = None, group_id: int = 1, request_delay: float = 500,
-                 json_settings_path: str = 'settings.json', log_data_request: bool = False, enable_task_list: bool = False):
+    def __init__(self, key: str = 'GL', ip: str | None = None, port: int | None = None, group_id: int = 1,
+                 request_delay: float = 500, json_settings_path: str = 'settings.json', log_data_request: bool = False,
+                 enable_task_list: bool = False):
 
-        self.key = key
-        self.ip = '255.255.255.255' if ip is None else ip
-        self.group_id = group_id
-        self.port = self.gen_port() if port is None else port
-        self.json_settings_path = json_settings_path
-        self.request_delay = request_delay
+        self.__key = key
+        self.__ip = '255.255.255.255' if ip is None else ip
+        self.__group_id = group_id
+        self.__port = self.__gen_port() if port is None else port
+        self.__json_settings_path = json_settings_path
+        self.__request_delay = request_delay
 
         self.__log_data_request = log_data_request
         self.__enable_task_list = enable_task_list
@@ -29,85 +31,83 @@ class Lamp:
 
         self.__last_request_time = 0
         self.__settings_data = deepcopy(DEFAULT_SETTINGS_DATA)
-        self.__effects_data = {'count_effets': '1', 'type_effect': '1', 'fade_brightness': '1', 'brightness': '255',
-                               'adv_mode': '1', 'effect_react': '1', 'min_signal': '0', 'max_signal': '255',
-                               'speed': '105', 'scale': '255', 'from_center': '0', 'color': '255', 'random': '0'}
+        self.__effects_data = deepcopy(DEFAULT_EFFECTS_DATA)
 
-        self.sock = socket(AF_INET, SOCK_DGRAM)
-        self.sock.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
-        self.sock.bind(('', self.port))
-        self.sock.settimeout(3)
+        self.__sock = socket(AF_INET, SOCK_DGRAM)
+        self.__sock.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
+        self.__sock.bind(('', self.__port))
+        self.__sock.settimeout(3)
 
-    def gen_port(self):
-        portNum = 17 # uint16_t(или % 65536)
-        for i in range(len(self.key)):
-            portNum *= ord(self.key[i])
+    def __gen_port(self):
+        port = 17
+        for i in range(len(self.__key)):
+            port *= ord(self.__key[i])
 
-        portNum %= 65536
-        portNum %= 15000
-        portNum += 50000
-        portNum += self.group_id
-        return portNum
+        port %= 65536
+        port %= 15000
+        port += 50000
+        port += self.__group_id
+        return port
 
     def turn_off(self, *date, **kwargs):
         """Turn off the lamp"""
         date = self.__date_proc(kwargs.get('delay'), *date)
-        self.send_request('0,0', date)
+        self.__send_request('0,0', date)
 
     def turn_on(self, *date, **kwargs):
         """ Turn on the lamp"""
         date = self.__date_proc(kwargs.get('delay'), *date)
-        self.send_request('0,1', date)
+        self.__send_request('0,1', date)
 
     def min_brightness(self):
         """ Set the minimum brightness of the lamp """
-        self.send_request('0,2')
+        self.__send_request('0,2')
 
     def max_brightness(self):
         """ Set the maximum brightness of the lamp """
-        self.send_request('0,3')
+        self.__send_request('0,3')
 
     def back_mode(self, *date, **kwargs):
         """ """
         date = self.__date_proc(kwargs.get('delay'), *date)
-        self.send_request('0,4', date)
+        self.__send_request('0,4', date)
 
     def next_mode(self, *date, **kwargs):
         """ Next mode """
         date = self.__date_proc(kwargs.get('delay'), *date)
-        self.send_request('0,5', date)
+        self.__send_request('0,5', date)
 
     def set_mode(self, mode):
         """ Set mode """
-        self.send_request(f'0,6,{mode}')
+        self.__send_request(f'0,6,{mode}')
 
     def set_wifi_mode(self, mode):
         """ 0 - AP, 1 - Local """
-        self.send_request(f'0,7,{mode}')
+        self.__send_request(f'0,7,{mode}')
 
     def change_role(self, role):
         """ 0 - Slave, 1 - Master """
-        self.send_request(f'0,8,{role}')
+        self.__send_request(f'0,8,{role}')
 
     def change_group(self, group_id):
         """ Set group"""
-        self.send_request(f'0,9,{group_id}')
+        self.__send_request(f'0,9,{group_id}')
 
     def set_wifi(self, ssid, password):
         """ Set Wi-Fi credentials """
-        self.send_request(f'0,10,{ssid},{password}')
+        self.__send_request(f'0,10,{ssid},{password}')
 
     def restart(self):
         """ Restart the lamp"""
-        self.send_request(f'0,11')
+        self.__send_request(f'0,11')
 
     def firmware_update(self):
         """ Update the firmware """
-        self.send_request(f'0,12')
+        self.__send_request(f'0,12')
 
     def sleep_timer(self, minutes: int):
         """ 0-255 minutes"""
-        self.send_request(f'0,13,{minutes}')
+        self.__send_request(f'0,13,{minutes}')
 
     def get_settings(self):
         return self.__settings_data
@@ -116,21 +116,20 @@ class Lamp:
         return self.__settings_data.get(name)
 
     def set_auto_sync_settings(self, state: bool):
-        self.send_request(f'20,2,{int(state)}')
+        self.__send_request(f'20,2,{int(state)}')
 
     def sync_settings(self, auto_sync: bool = False, attempts: int = 5, check_ver: bool = True):
-        data = self.send_request(f'20,1,{int(auto_sync)}', response=True)
+        data = self.__send_request(f'20,1,{int(auto_sync)}', response=True)
         if data is None:
             if attempts > 0:
-                sleep(0.03)
-                self.sync_settings(auto_sync, attempts-1, check_ver)
+                sleep(0.5)
+                return self.sync_settings(auto_sync, attempts-1, check_ver)
             return False
 
         data = data.split(',')
-        print(data)
         count = 0
-        for key in self.__settings_data.keys():
-            self.__settings_data[key] = data[count]
+        for key_ in self.__settings_data.keys():
+            self.__settings_data[key_] = data[count]
             count += 1
         return True
 
@@ -145,11 +144,12 @@ class Lamp:
             settings[key] = value
         for value in settings.values():
             data += f',{value}'
-        self.send_request(f'1{data}', date)
+        self.__send_request(f'1{data}', date)
 
-    def random_effects(self, count: int = 3, *date, **kwargs):
+    def random_effects(self, count: int = 1, *date, **kwargs):
         if not 0 < count < 26:
-            return
+            # raise ValueError('Количество эффектов должно быть между 0 и 26')
+            raise CountEffectsNotInRangeError()
         data = f'2,{count}'
         random_num = randint(1, count)
         brightness = kwargs.get('brightness')
@@ -177,7 +177,7 @@ class Lamp:
             data += f',{type_effect},{fade_brightness},{brightness},{adv_mode},{sound_react},{min_signal},{max_signal},{speed},{palette},{scale},{from_center},{color},{random_effect}'
         data += f',{random_num}'
         date = self.__date_proc(kwargs.get('delay'), *date)
-        self.send_request(data, date)
+        self.__send_request(data, date)
 
     def palette(self, *date, **kwargs):
         date = self.__date_proc(kwargs.get('delay'), *date)
@@ -196,20 +196,20 @@ class Lamp:
             color, scale, brightness = kwargs.get('chsv')
         type_effect = kwargs.get('type_effect', 2)
         data = f'2,1,{type_effect},1,{brightness},1,1,0,255,105,2,{scale},0,{color},0,1'
-        self.send_request(data, date)
+        self.__send_request(data, date)
 
     def save_settings_json(self):
-        with open(self.json_settings_path, 'w') as file:
+        with open(self.__json_settings_path, 'w') as file:
             jdump(self.__settings_data, file)
 
     def load_settings_json(self):
-        with open(self.json_settings_path, 'r') as file:
+        with open(self.__json_settings_path, 'r') as file:
             self.__settings_data = jload(file)
 
     def show_task_list(self):
         return self.__task_list
 
-    def send_request(self, *args, **kwargs):
+    def __send_request(self, *args, **kwargs):
         if isinstance(args[0], tuple):
             args = args[0]
         delay = 0
@@ -218,6 +218,8 @@ class Lamp:
         current_time = int(time() * 1000)
         if not self.__check_time_to_send(current_time, delay) and kwargs.get('skip') is None:
             if self.__enable_task_list:
+                if len(self.__task_list) > 99:
+                    return
                 self.__task_list.append(args)
             return
         data = []
@@ -225,16 +227,16 @@ class Lamp:
             if 'now' in i:
                 i = self.__now_date()
             data.append(i)
-        message = f'{self.key},{",".join(data)}'
+        message = f'{self.__key},{",".join(data)}'
         if self.__log_data_request:
             print(message)
             print(self.__format_request_data(message))
 
         self.__last_request_time = int(time() * 1000)
         try:
-            self.sock.sendto(message.encode(), (self.ip, self.port))
+            self.__sock.sendto(message.encode(), (self.__ip, self.__port))
             if kwargs.get('response'):
-                result, addr = self.sock.recvfrom(1024)
+                result, addr = self.__sock.recvfrom(1024)
                 result = result.decode()
                 if 'GL_ONL' in result:
                     return None
@@ -244,8 +246,8 @@ class Lamp:
 
     def __check_time_to_send(self, current_time: int, delay: int = 0):
         if delay > 0:
-            delay -= self.request_delay
-        return current_time - (self.__last_request_time + delay) > self.request_delay
+            delay -= self.__request_delay
+        return current_time - (self.__last_request_time + delay) > self.__request_delay
 
     def __task_list_processing(self):
         while True:
@@ -257,7 +259,7 @@ class Lamp:
                 current_time = int(time() * 1000)
                 if self.__check_time_to_send(current_time, delay):
                     self.__task_list.pop(0)
-                    self.send_request(task, skip=1)
+                    self.__send_request(task, skip=1)
 
             sleep(0.1)
 

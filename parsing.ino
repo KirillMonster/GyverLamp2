@@ -6,15 +6,7 @@ String data_sync;
 const byte sync_ver = 11;
 
 void sync_data(bool sync = false, bool auto_sync = false) {
-  if (sync || auto_sync_settings) {
-    // DEBUGLN("Sync settings, Auto Sync = "+String(auto_sync_settings));
-    // data_sync = "&brightness=" + String(cfg.bright) + "&adc=" + String(cfg.adcMode) + "&min_brightness=" + String(cfg.minBright) + "&max_brightness=" + String(cfg.maxBright);
-    // data_sync = data_sync + "&regime_change=" + String(cfg.rotation) + "&random_order_modes=" + String(cfg.rotRnd) + "&shift_period=" + String(cfg.rotPeriod) + "&strip_type=" + String(cfg.deviceType);
-    // data_sync = data_sync + "&maximal_current=" + String(cfg.maxCur) + "&work_hours_from=" + String(cfg.workFrom) + "&work_hours_to=" + String(cfg.workTo) + "&matrix_orientation=" + String(cfg.matrix);
-    // data_sync = data_sync + "&height=" + String(cfg.length) + "&width=" + String(cfg.width) + "&gmt=" + String(cfg.GMT) + "&city_id=" + String(cfg.cityID) + "&mqtt_state=" + String(cfg.mqtt);
-    // data_sync = data_sync + "&mqtt_id=" + String(cfg.mqttID) + "&mqtt_host=" + String(cfg.mqttHost) + "&mqtt_port=" + String(cfg.mqttPort) + "&mqtt_login=" + String(cfg.mqttLogin) + "&mqtt_pass=" + String(cfg.mqttPass);
     auto_sync_settings = auto_sync;
-
     char reply[100];
     mString packet(reply);
     packet.clear();
