@@ -124,7 +124,7 @@ class Lamp:
             if attempts > 0:
                 sleep(0.5)
                 return self.sync_settings(auto_sync, attempts-1, check_ver)
-            return False
+            raise SyncError()
 
         data = data.split(',')
         count = 0
