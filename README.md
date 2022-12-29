@@ -4,7 +4,6 @@
 ### 🔗 Ссылки
  - Страница проекта на сайте: https://alexgyver.ru/GyverLamp/ <br />
  - GyverLamp2 - https://github.com/AlexGyver/GyverLamp2 <br />
- - **[parsing.ino](https://drive.google.com/file/d/1pnKzcrGQT6KlmFDsaizI0PsYUBRaYPh_/view?usp=sharing)** - Этот файл нужен для сихронизации настроек, скачайте прошивку и замените файл parsing.ino на этот, лампой можно управлять без этого
 
 
 ### 📋 Возможности
@@ -26,6 +25,17 @@ python3 -m pip install -U GyverLamp2
 py -3 -m pip install -U GyverLamp2
 ```
 
+<a id="sync-system"></a>
+### Настройка и установка системы синхронизации
+- Cкачать файл - **[parsing.ino](https://drive.google.com/file/d/1pnKzcrGQT6KlmFDsaizI0PsYUBRaYPh_/view?usp=sharing)**
+- Скачать архив с проектом **https://github.com/AlexGyver/GyverLamp2**
+- Разархивировать архив
+- Перейти в папку c проектом
+- Потом в папку firmware, дальше в GyverLamp2
+- Заменить файл parsing.ino на скачанный
+- Прошиваем
+- Готово!
+
 ###  Простой пример
 ```Python
 from GyverLamp2 import Lamp
@@ -36,6 +46,18 @@ lamp = Lamp()
 lamp.turn_on()
 sleep(0.5)
 lamp.next_mode()
+```
+
+###  Список задач
+```Python
+from GyverLamp2 import Lamp
+
+lamp = Lamp(enable_task_list=True)
+
+lamp.turn_on()
+
+while True:
+    lamp.random_effects(delay=5000)
 ```
 
 Все примеры - https://github.com/KirillMonster/GyverLamp2/tree/main/examples/
