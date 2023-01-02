@@ -1,8 +1,7 @@
-from socket import AF_INET, SOCK_DGRAM, socket, SOL_SOCKET, SO_BROADCAST
+from socket import AF_INET, SOCK_DGRAM, socket, SOL_SOCKET, SO_BROADCAST, gethostbyname, gethostname
 from datetime import datetime
 from json import load as jload, dump as jdump
 from random import randint
-from threading import Thread
 from time import sleep, time
 from copy import deepcopy
 from .gcolor import *
@@ -12,37 +11,33 @@ from .exceptions import *
 
 class Lamp:
     def __init__(self, key: str = 'GL', ip: str | None = None, port: int | None = None, group_id: int = 1,
-                 request_delay: float = 500, json_settings_path: str = 'settings.json', log_data_request: bool = False,
-                 enable_task_list: bool = False):
+                 json_settings_path: str = 'settings.json', log_data_request: bool = False):
 
         self.__key = key
-        self.__ip = '255.255.255.255' if ip is None else ip
+        self.local_ip = gethostbyname(gethostname())
+        self.ip = self.__get_broadcast_addr() if ip is None else ip
         self.__group_id = group_id
-        self.__port = self.__gen_port() if port is None else port
+        self.port = self.__gen_port() if port is None else port
         self.__json_settings_path = json_settings_path
-        self.__request_delay = request_delay
-
         self.__log_data_request = log_data_request
-        self.__enable_task_list = enable_task_list
-        self.__task_list = []
-        if self.__enable_task_list:
-            self.__task_list_thread = Thread(target=self.__task_list_processing)
-            self.__task_list_thread.start()
-
-        self.__last_request_time = 0
         self.__settings_data = deepcopy(DEFAULT_SETTINGS_DATA)
         self.__effects_data = deepcopy(DEFAULT_EFFECTS_DATA)
 
         self.__sock = socket(AF_INET, SOCK_DGRAM)
         self.__sock.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
-        self.__sock.bind(('', self.__port))
+        self.__sock.bind(('', self.port))
         self.__sock.settimeout(3)
+
+    def __get_broadcast_addr(self):
+        ip = list(map(int, self.local_ip.split(".")))
+        mask = list(map(int, '255.255.255.0'.split(".")))
+        broadcast = [str(i | (j ^ 255)) for i, j in zip(ip, mask)]
+        return '.'.join(broadcast)
 
     def __gen_port(self):
         port = 17
         for i in range(len(self.__key)):
             port *= ord(self.__key[i])
-
         port %= 65536
         port %= 15000
         port += 50000
@@ -118,20 +113,19 @@ class Lamp:
     def set_auto_sync_settings(self, state: bool):
         self.__send_request(f'20,2,{int(state)}')
 
-    def sync_settings(self, auto_sync: bool = False, attempts: int = 5, check_ver: bool = True):
-        data = self.__send_request(f'20,1,{int(auto_sync)}', response=True)
-        if data is None:
-            if attempts > 0:
-                sleep(0.5)
-                return self.sync_settings(auto_sync, attempts-1, check_ver)
+    def sync_settings(self, auto_sync: bool = False):
+        try:
+            msg = self.__send_request(f'20,1,{int(auto_sync)}', response=True)
+        except TimeOutError:
             raise SyncError()
-
-        data = data.split(',')
+        data = msg.split(',')
         count = 0
-        for key_ in self.__settings_data.keys():
-            self.__settings_data[key_] = data[count]
-            count += 1
-        return True
+        try:
+            for key_ in self.__settings_data.keys():
+                self.__settings_data[key_] = data[count]
+                count += 1
+        except IndexError:
+            raise IncorrectData(msg)
 
     def settings(self, default_settings: bool = False, *date, **kwargs):
         date = self.__date_proc(kwargs.get('delay'), *date)
@@ -148,7 +142,6 @@ class Lamp:
 
     def random_effects(self, count: int = 1, *date, **kwargs):
         if not 0 < count < 26:
-            # raise ValueError('Количество эффектов должно быть между 0 и 26')
             raise CountEffectsNotInRangeError()
         data = f'2,{count}'
         random_num = randint(1, count)
@@ -206,62 +199,30 @@ class Lamp:
         with open(self.__json_settings_path, 'r') as file:
             self.__settings_data = jload(file)
 
-    def show_task_list(self):
-        return self.__task_list
-
     def __send_request(self, *args, **kwargs):
         if isinstance(args[0], tuple):
             args = args[0]
         delay = 0
         if len(args) > 1 and '+' in args[1]:
             delay = int(args[1].split('+')[1])
-        current_time = int(time() * 1000)
-        if not self.__check_time_to_send(current_time, delay) and kwargs.get('skip') is None:
-            if self.__enable_task_list:
-                if len(self.__task_list) > 99:
-                    return
-                self.__task_list.append(args)
-            return
+
         data = []
         for i in args:
             if 'now' in i:
-                i = self.__now_date()
+                i = self.__now_date(delay)
             data.append(i)
         message = f'{self.__key},{",".join(data)}'
         if self.__log_data_request:
             print(message)
             print(self.__format_request_data(message))
 
-        self.__last_request_time = int(time() * 1000)
-        try:
-            self.__sock.sendto(message.encode(), (self.__ip, self.__port))
-            if kwargs.get('response'):
-                result, addr = self.__sock.recvfrom(1024)
-                result = result.decode()
-                if 'GL_ONL' in result:
-                    return None
-                return result
-        except Exception as e:
-            print(e)
+        for i in range(3):
+            self.__sock.sendto(message.encode(), (self.ip, self.port))
+            sleep(0.01)
 
-    def __check_time_to_send(self, current_time: int, delay: int = 0):
-        if delay > 0:
-            delay -= self.__request_delay
-        return current_time - (self.__last_request_time + delay) > self.__request_delay
-
-    def __task_list_processing(self):
-        while True:
-            if len(self.__task_list) > 0:
-                task = self.__task_list[0]
-                delay = 0
-                if len(task) > 1 and '+' in task[1]:
-                    delay = int(task[1].split('+')[1])
-                current_time = int(time() * 1000)
-                if self.__check_time_to_send(current_time, delay):
-                    self.__task_list.pop(0)
-                    self.__send_request(task, skip=1)
-
-            sleep(0.1)
+        if kwargs.get('response'):
+            result = self.__query_handler()
+            return result
 
     def __formate_date(self, date):
         return f'{DAYS_OF_THE_WEEK[date[0]]}, {date[1]}ч, {date[2]}м, {date[3]}с'
@@ -319,16 +280,24 @@ class Lamp:
                     msg += f'\nРежим #{count}, тип эффекта: {TYPE_EFFECTS[effect[0]]}, понизить яркость: {effect[1]},' \
                            f' яркость {effect[2]}, дополнительно: {effect[3]}, реацкия на звук: {effect[4]},' \
                            f' мин сигнал: {effect[5]}, макс сигнал: {effect[6]}, скорость {effect[7]},' \
-                           f' палитра: {TYPE_PALLETES[effect[8]]}, масштаб: {effect[9]}, из центра: {effect[10]},'\
+                           f' палитра: {TYPE_PALLETES[effect[8]]}, масштаб: {effect[9]}, из центра: {effect[10]},' \
                            f' цвет: {effect[11]}, случайный: {effect[12]}'
 
         return msg
 
-    def __now_date(self):
-        day = datetime.fromtimestamp(int(time() + 1))
+    def __now_date(self, delay=0):
+        day = datetime.fromtimestamp(int(time() + 1 + delay))
         return f'{day.isoweekday()},{day.hour},{day.minute},{day.second}'
 
     def __date_proc(self, delay, *date):
         if len(date) == 0:
             return f'now+{delay}' if delay else 'now'
         return date
+
+    def __query_handler(self):
+        try:
+            result, addr = self.__sock.recvfrom(4096)
+            result = result.decode()
+            return result
+        except TimeoutError:
+            raise TimeOutError()

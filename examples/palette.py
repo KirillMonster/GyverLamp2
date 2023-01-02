@@ -2,7 +2,7 @@ from GyverLamp2 import Lamp
 from GyverLamp2.gcolor import *
 from time import sleep
 
-lamp = Lamp(request_delay=1500)
+lamp = Lamp()
 
 # print('Отображение одного цвета разными кодировками цвета')
 # lamp.palette(colour='aqua', brightness=255)

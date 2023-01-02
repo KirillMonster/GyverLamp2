@@ -9,5 +9,15 @@ class CountEffectsNotInRangeError(GyverLamp2Error):
 
 class SyncError(GyverLamp2Error):
     def __init__(self):
-        super().__init__('Ошибка синхронизации лампы. Проверьте что вы находитесь в одной сети и у лампы стоит '
-                         'модифицированная прошивка - https://github.com/KirillMonster/GyverLamp2#sync-system')
+        super().__init__('Вышло время получения ответа. Проверьте что лампа включена, \nвы находитесь в одной сети и у '
+                         'лампы стоит модифицированная прошивка - \n'
+                         'https://github.com/KirillMonster/GyverLamp2#sync-system')
+
+
+class TimeOutError(GyverLamp2Error):
+    def __init__(self):
+        super().__init__('Вышло время получения ответа')
+
+class IncorrectData(GyverLamp2Error):
+    def __init__(self, data):
+        super().__init__(f'Были получены неверные данные от клиента: {data}')
