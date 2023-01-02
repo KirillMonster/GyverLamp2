@@ -10,11 +10,12 @@ from .exceptions import *
 
 
 class Lamp:
-    def __init__(self, key: str = 'GL', ip: str | None = None, port: int | None = None, group_id: int = 1,
-                 json_settings_path: str = 'settings.json', log_data_request: bool = False):
+    def __init__(self, key: str = 'GL', ip: str | None = None, port: int | None = None, netmask: str = '255.255.255.0',
+                 group_id: int = 1, json_settings_path: str = 'settings.json', log_data_request: bool = False):
 
         self.__key = key
         self.local_ip = gethostbyname(gethostname())
+        self.netmask = netmask
         self.ip = self.__get_broadcast_addr() if ip is None else ip
         self.__group_id = group_id
         self.port = self.__gen_port() if port is None else port
@@ -30,7 +31,7 @@ class Lamp:
 
     def __get_broadcast_addr(self):
         ip = list(map(int, self.local_ip.split(".")))
-        mask = list(map(int, '255.255.255.0'.split(".")))
+        mask = list(map(int, self.netmask.split(".")))
         broadcast = [str(i | (j ^ 255)) for i, j in zip(ip, mask)]
         return '.'.join(broadcast)
 
