@@ -14,7 +14,7 @@ COLORS_RGB = {
     'black': (0, 0, 0,),
     'white': (255, 255, 255,)
 }
-COLOR_RU = {'красный': 'red', 'оранжевый': 'orange', 'желтый': 'yellow', 'лайм': 'lime', 'аква': 'aqua', 'циан': 'cyan',
+COLORS_RU = {'красный': 'red', 'оранжевый': 'orange', 'желтый': 'yellow', 'лайм': 'lime', 'аква': 'aqua', 'циан': 'cyan',
             'синий': 'blue', 'фиолетовый': 'purple', 'розовый': 'pink', 'черный': 'black', 'белый': 'white'}
 COLORS_HEX = {}
 COLORS_HSV = {}
