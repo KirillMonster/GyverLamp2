@@ -1,5 +1,7 @@
 from .GyverLamp2 import *
 from .gcolor import *
+from .config import *
+from .exceptions import *
 
 __author__ = 'KirillMonster'
 __version__ = '0.1.3'
