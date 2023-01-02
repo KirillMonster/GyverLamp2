@@ -5,6 +5,7 @@ DEFAULT_SETTINGS_DATA = {'brightness': '100', 'adc': '1', 'min_brightness': '0',
                          'city_id': '524901', 'mqtt_state': '0', 'mqtt_id': 'alexLamp123',
                          'mqtt_host': 'broker.mqttdashboard.com', 'mqtt_port': '1883', 'mqtt_login': 'gyver',
                          'mqtt_pass': '123456'}
+
 DEFAULT_EFFECTS_DATA = {'count_effets': '1', 'type_effect': '1', 'fade_brightness': '1', 'brightness': '255',
                         'adv_mode': '1', 'effect_react': '1', 'min_signal': '0', 'max_signal': '255',
                         'speed': '105', 'scale': '255', 'from_center': '0', 'color': '255', 'random': '0'}
