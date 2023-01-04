@@ -18,6 +18,7 @@ class TimeOutError(GyverLamp2Error):
     def __init__(self):
         super().__init__('Вышло время получения ответа')
 
+
 class IncorrectDataError(GyverLamp2Error):
-    def __init__(self, data):
-        super().__init__(f'Были получены неверные данные от клиента: {data}')
+    def __init__(self, address, data):
+        super().__init__(f'Были получены неверные данные от клиента ({address[0]}:{address[1]}): {data}')

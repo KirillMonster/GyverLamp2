@@ -1,12 +1,12 @@
-from socket import AF_INET, SOCK_DGRAM, socket, SOL_SOCKET, SO_BROADCAST, gethostbyname, gethostname
+from socket import AF_INET, SOCK_DGRAM, socket, SOL_SOCKET, SO_BROADCAST, SO_REUSEPORT, IPPROTO_UDP, gethostbyname, gethostname
 from datetime import datetime
 from json import load as jload, dump as jdump
 from random import randint
-from time import sleep, time
+from time import time
 from copy import deepcopy
 from .gcolor import *
 from .config import *
-from .exceptions import *
+from .__exceptions__ import *
 
 
 class Lamp:
@@ -17,6 +17,7 @@ class Lamp:
         self.local_ip = gethostbyname(gethostname())
         self.netmask = netmask
         self.ip = self.__get_broadcast_addr() if ip is None else ip
+        self.client_address = None
         self.__group_id = group_id
         self.port = self.__gen_port() if port is None else port
         self.__json_settings_path = json_settings_path
@@ -24,7 +25,8 @@ class Lamp:
         self.__settings_data = deepcopy(DEFAULT_SETTINGS_DATA)
         self.__effects_data = deepcopy(DEFAULT_EFFECTS_DATA)
 
-        self.__sock = socket(AF_INET, SOCK_DGRAM)
+        self.__sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)
+        self.__sock.setsockopt(SOL_SOCKET, SO_REUSEPORT, 1)
         self.__sock.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
         self.__sock.bind(('', self.port))
         self.__sock.settimeout(3)
@@ -116,7 +118,9 @@ class Lamp:
 
     def sync_settings(self, auto_sync: bool = False):
         try:
-            msg = self.__send_request(f'20,1,{int(auto_sync)}', response=True)
+            msg, address = self.__send_request(f'20,1,{int(auto_sync)}', response=True)
+            if msg is None:
+                raise SyncError()
         except TimeOutError:
             raise SyncError()
         data = msg.split(',')
@@ -126,7 +130,7 @@ class Lamp:
                 self.__settings_data[key_] = data[count]
                 count += 1
         except IndexError:
-            raise IncorrectData(msg)
+            raise IncorrectDataError(address, msg)
 
     def settings(self, default_settings: bool = False, *date, **kwargs):
         date = self.__date_proc(kwargs.get('delay'), *date)
@@ -173,7 +177,7 @@ class Lamp:
         date = self.__date_proc(kwargs.get('delay'), *date)
         self.__send_request(data, date)
 
-    def palette(self, *date, **kwargs):
+    def color_fill(self, *date, **kwargs):
         date = self.__date_proc(kwargs.get('delay'), *date)
         color, scale, brightness = 255, 255, kwargs.get('brightness', 255)
         if kwargs.get('colour') or kwargs.get('color') or kwargs.get('rgb'):
@@ -217,13 +221,11 @@ class Lamp:
             print(message)
             print(self.__format_request_data(message))
 
-        for i in range(3):
+        for i in range(5):
             self.__sock.sendto(message.encode(), (self.ip, self.port))
-            sleep(0.01)
 
         if kwargs.get('response'):
-            result = self.__query_handler()
-            return result
+            return self.__query_handler()
 
     def __formate_date(self, date):
         return f'{DAYS_OF_THE_WEEK[date[0]]}, {date[1]}ч, {date[2]}м, {date[3]}с'
@@ -278,10 +280,10 @@ class Lamp:
                 for effect in effects:
                     count += 1
 
-                    msg += f'\nРежим #{count}, тип эффекта: {TYPE_EFFECTS[effect[0]]}, понизить яркость: {effect[1]},' \
+                    msg += f'\nРежим #{count}, тип эффекта: {TYPE_EFFECTS[int(effect[0])-1]}, понизить яркость: {effect[1]},' \
                            f' яркость {effect[2]}, дополнительно: {effect[3]}, реацкия на звук: {effect[4]},' \
                            f' мин сигнал: {effect[5]}, макс сигнал: {effect[6]}, скорость {effect[7]},' \
-                           f' палитра: {TYPE_PALLETES[effect[8]]}, масштаб: {effect[9]}, из центра: {effect[10]},' \
+                           f' палитра: {TYPE_PALLETES[int(effect[8])-1]}, масштаб: {effect[9]}, из центра: {effect[10]},' \
                            f' цвет: {effect[11]}, случайный: {effect[12]}'
 
         return msg
@@ -295,10 +297,15 @@ class Lamp:
             return f'now+{delay}' if delay else 'now'
         return date
 
-    def __query_handler(self):
+    def __query_handler(self, attempts: int = 15):
         try:
-            result, addr = self.__sock.recvfrom(4096)
+            result, address = self.__sock.recvfrom(8192)
             result = result.decode()
-            return result
+            if address[0] == self.local_ip or result.startswith('GL_ONL0'):
+                if attempts > 0:
+                    return self.__query_handler(attempts-1)
+                return None
+            self.client_address = address
+            return result, address
         except TimeoutError:
-            raise TimeOutError()
+            raise TimeoutError('Вышло время получения ответа')

@@ -14,8 +14,12 @@ COLORS_RGB = {
     'black': (0, 0, 0,),
     'white': (255, 255, 255,)
 }
-COLORS_RU = {'красный': 'red', 'оранжевый': 'orange', 'желтый': 'yellow', 'лайм': 'lime', 'аква': 'aqua', 'циан': 'cyan',
-            'синий': 'blue', 'фиолетовый': 'purple', 'розовый': 'pink', 'черный': 'black', 'белый': 'white'}
+COLORS_RU2ENG = {'красный': 'red', 'оранжевый': 'orange', 'желтый': 'yellow', 'зеленый': 'green', 'лайм': 'lime', 'аква': 'aqua',
+                 'циан': 'cyan', 'синий': 'blue', 'фиолетовый': 'purple', 'розовый': 'pink', 'черный': 'black',
+                 'белый': 'white'}
+COLORS_ENG2RU = {}
+for key, value in COLORS_RU2ENG.items():
+    COLORS_ENG2RU[value] = key
 COLORS_HEX = {}
 COLORS_HSV = {}
 COLORS_CHSV = {}
@@ -114,11 +118,8 @@ def rgb2chsv(r, g, b) -> tuple[Any, ...]:
 for __key in COLORS_RGB.keys():
     COLORS_HEX[__key] = rgb2hex(*COLORS_RGB[__key])
 
-
 for __key in COLORS_RGB.keys():
     COLORS_HSV[__key] = rgb2hsv(*COLORS_RGB[__key])
 
-
 for __key in COLORS_RGB.keys():
     COLORS_CHSV[__key] = rgb2chsv(*COLORS_RGB[__key])
-
