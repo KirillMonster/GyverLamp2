@@ -1,31 +1,71 @@
 from typing import Any
 
 COLORS_RGB = {
-    'red': (255, 0, 0,),
-    'orange': (255, 165, 0,),
-    'yellow': (255, 255, 0,),
-    'green': (0, 214, 120,),
-    'lime': (0, 255, 0,),
-    'aqua': (0, 255, 255,),
-    'cyan': (0, 255, 255,),
-    'blue': (0, 0, 255,),
-    'purple': (255, 20, 147,),
-    'pink': (255, 20, 147,),
-    'black': (0, 0, 0,),
-    'white': (255, 255, 255,)
+    'white': (248, 252, 248),
+    'silver': (192, 192, 192),
+    'gray': (128, 128, 128),
+    'black': (0, 0, 0),
+    'red': (248, 0, 0),
+    'maroon': (128, 0, 0),
+    'orange': (248, 48, 0),
+    'yellow': (248, 128, 0),
+    'olive': (128, 128, 0),
+    'lime': (0, 252, 0),
+    'green': (0, 128, 0),
+    'aqua': (0, 252, 248),
+    'teal': (0, 128, 128),
+    'blue': (0, 0, 248),
+    'navy': (0, 0, 128),
+    'magenta': (248, 0, 248),
+    'purple': (128, 0, 128)
 }
-COLORS_RU2ENG = {'красный': 'red', 'оранжевый': 'orange', 'желтый': 'yellow', 'зеленый': 'green', 'лайм': 'lime', 'аква': 'aqua',
-                 'циан': 'cyan', 'синий': 'blue', 'фиолетовый': 'purple', 'розовый': 'pink', 'черный': 'black',
-                 'белый': 'white'}
+
+COLORS_RU2ENG = {
+    'белый': 'white',
+    'серебро': 'silver',
+    'серый': 'gray',
+    'чёрный': 'black',
+    'красный': 'red',
+    'бордовый': 'maroon',
+    'оранжевый': 'orange',
+    'жёлтый': 'yellow',
+    'олива': 'olive',
+    'лайм': 'lime',
+    'зелёный': 'green',
+    'аква': 'aqua',
+    'teal': 'teal',
+    'голубой': 'blue',
+    'темно-синий': 'navy',
+    'розовый': 'magenta',
+    'пурпурный': 'purple'
+}
 COLORS_ENG2RU = {}
-for key, value in COLORS_RU2ENG.items():
-    COLORS_ENG2RU[value] = key
 COLORS_HEX = {}
 COLORS_HSV = {}
 COLORS_CHSV = {}
 
 
-def rgb2hsv(r, g, b):
+def hex2rgb(color: int | str) -> tuple[int, int, int]:
+    # https://github.com/GyverLibs/GRGB/blob/main/src/GRGB.h#L282
+    if isinstance(color, str):
+        color = int(color.replace('#', ''), 16)
+
+    r = (color >> 16) & 0xFF
+    g = (color >> 8) & 0xFF
+    b = color & 0xFF
+    return r, g, b
+
+
+def hex16tohex24(color: int) -> int:
+    # https://github.com/GyverLibs/GRGB/blob/main/src/GRGB.h#L292
+    return ((color & 0xF800) << 8) | ((color & 0x7E0) << 5) | ((color & 0x1F) << 3)
+
+
+def rgb2hex(r, g, b) -> str:
+    return '#%02x%02x%02x' % (r, g, b)
+
+
+def rgb2hsv(r, g, b) -> tuple[int, int, int]:
     r, g, b = r / 255, g / 255, b / 255
     max_rgb = max(r, g, b)
     min_rgb = min(r, g, b)
@@ -46,46 +86,7 @@ def rgb2hsv(r, g, b):
     return round(h), round(s, 2), round(max_rgb, 2)
 
 
-def rgb2hex(r, g, b) -> str:
-    code = f'{hex(r)}{hex(g)}{hex(b)}'.replace('0x', '')
-    if len(code) < 6:
-        last_num = code[-1]
-        for i in range(6 - len(code)):
-            code += last_num
-    return code
-
-
-def hex2rgb(code: str) -> tuple[int, int, int]:
-    code = code.replace('#', '')
-    count = 0
-    r, g, b = None, None, None
-    len_code = len(code)
-    if len_code == 0 or len_code > 6:
-        return 255, 255, 255
-
-    last_num = code[-1]
-    if len_code < 6:
-        for i in range(6 - len_code):
-            code += last_num
-
-    for i in code:
-        count += 1
-        if count % 2 != 0:
-            last_num = i
-        if count > 1 and count % 2 == 0:
-            num = f'0x{last_num}{i}'
-            if r is None:
-                r = int(num, 16)
-            elif g is None:
-                g = int(num, 16)
-            elif b is None:
-                b = int(num, 16)
-            else:
-                break
-    return r, g, b
-
-
-def hsv2chsv(h, s, v) -> tuple[Any, ...]:
+def hsv2chsv(h, s, v) -> tuple[int, int, int]:
     if h < 1.1:
         h = h * 255
     else:
@@ -98,10 +99,7 @@ def hsv2chsv(h, s, v) -> tuple[Any, ...]:
         v = v * 255
     else:
         v = v / 100 * 255
-    h = round(h)
-    s = round(s)
-    v = round(v)
-    return h, s, v
+    return round(h), round(s), round(v)
 
 
 def chsv2hsv(h, s, v) -> tuple[float, float, float]:
@@ -111,7 +109,7 @@ def chsv2hsv(h, s, v) -> tuple[float, float, float]:
     return round(h), round(s), round(v)
 
 
-def rgb2chsv(r, g, b) -> tuple[Any, ...]:
+def rgb2chsv(r, g, b) -> tuple[int, int, int]:
     return hsv2chsv(*rgb2hsv(r, g, b))
 
 
@@ -123,3 +121,6 @@ for __key in COLORS_RGB.keys():
 
 for __key in COLORS_RGB.keys():
     COLORS_CHSV[__key] = rgb2chsv(*COLORS_RGB[__key])
+
+for __key, __value in COLORS_RU2ENG.items():
+    COLORS_ENG2RU[__value] = __key
