@@ -48,4 +48,4 @@ sleep(0.5)
 lamp.next_mode()
 ```
 
-Все примеры - https://github.com/KirillMonster/GyverLamp2/tree/master/examples
+Все примеры - https://github.com/KirillMonster/GyverLamp2/tree/main/examples
