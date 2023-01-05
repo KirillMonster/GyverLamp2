@@ -1,4 +1,5 @@
-from socket import AF_INET, SOCK_DGRAM, socket, SOL_SOCKET, SO_BROADCAST, SO_REUSEPORT, IPPROTO_UDP, gethostbyname, gethostname
+from socket import AF_INET, SOCK_DGRAM, socket, SOL_SOCKET, SO_BROADCAST, SO_REUSEPORT, IPPROTO_UDP, gethostbyname, \
+    gethostname
 from datetime import datetime
 from json import load as jload, dump as jdump
 from random import randint
@@ -179,21 +180,24 @@ class Lamp:
 
     def color_fill(self, *date, **kwargs):
         date = self.__date_proc(kwargs.get('delay'), *date)
-        color, scale, brightness = 255, 255, kwargs.get('brightness', 255)
-        if kwargs.get('colour') or kwargs.get('color') or kwargs.get('rgb'):
-            color = kwargs.get('colour') or kwargs.get('color') or kwargs.get('rgb')
+        hue, saturation, value = 255, 255, 255
+        if kwargs.get('colour') or kwargs.get('color'):
+            color = kwargs.get('colour') or kwargs.get('color')
             if color in COLORS_RGB:
-                color, scale, brightness = rgb2chsv(*COLORS_RGB[color])
-            elif kwargs.get('rgb'):
-                color, scale, brightness = rgb2chsv(*color)
+                hue, saturation, value = rgb2chsv(*COLORS_RGB[color])
+        elif kwargs.get('rgb'):
+            hue, saturation, value = rgb2chsv(*kwargs.get('rgb'))
+        elif kwargs.get('hex16'):
+            hue, saturation, value = rgb2chsv(*hex2rgb(hex16tohex24(kwargs.get('hex16'))))
         elif kwargs.get('hex'):
-            color, scale, brightness = rgb2chsv(*hex2rgb(kwargs.get('hex').replace('#', '')))
+            hue, saturation, value = rgb2chsv(*hex2rgb(kwargs.get('hex')))
         elif kwargs.get('hsv'):
-            color, scale, brightness = hsv2chsv(*kwargs.get('hsv'))
+            hue, saturation, value = hsv2chsv(*kwargs.get('hsv'))
         elif kwargs.get('chsv'):
-            color, scale, brightness = kwargs.get('chsv')
+            hue, saturation, value = kwargs.get('chsv')
+        hue, saturation, value = kwargs.get('hue', hue), kwargs.get('saturation', saturation), kwargs.get('value', value)
         type_effect = kwargs.get('type_effect', 2)
-        data = f'2,1,{type_effect},1,{brightness},1,1,0,255,105,2,{scale},0,{color},0,1'
+        data = f'2,1,{type_effect},1,{value},1,1,0,255,105,2,{saturation},0,{hue},0,1'
         self.__send_request(data, date)
 
     def save_settings_json(self):
@@ -280,10 +284,10 @@ class Lamp:
                 for effect in effects:
                     count += 1
 
-                    msg += f'\nРежим #{count}, тип эффекта: {TYPE_EFFECTS[int(effect[0])-1]}, понизить яркость: {effect[1]},' \
+                    msg += f'\nРежим #{count}, тип эффекта: {TYPE_EFFECTS[int(effect[0]) - 1]}, понизить яркость: {effect[1]},' \
                            f' яркость {effect[2]}, дополнительно: {effect[3]}, реацкия на звук: {effect[4]},' \
                            f' мин сигнал: {effect[5]}, макс сигнал: {effect[6]}, скорость {effect[7]},' \
-                           f' палитра: {TYPE_PALLETES[int(effect[8])-1]}, масштаб: {effect[9]}, из центра: {effect[10]},' \
+                           f' палитра: {TYPE_PALLETES[int(effect[8]) - 1]}, масштаб: {effect[9]}, из центра: {effect[10]},' \
                            f' цвет: {effect[11]}, случайный: {effect[12]}'
 
         return msg
@@ -303,7 +307,7 @@ class Lamp:
             result = result.decode()
             if address[0] == self.local_ip or result.startswith('GL_ONL0'):
                 if attempts > 0:
-                    return self.__query_handler(attempts-1)
+                    return self.__query_handler(attempts - 1)
                 return None
             self.client_address = address
             return result, address

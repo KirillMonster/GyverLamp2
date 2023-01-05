@@ -1,5 +1,3 @@
-from typing import Any
-
 COLORS_RGB = {
     'white': (248, 252, 248),
     'silver': (192, 192, 192),
@@ -46,17 +44,15 @@ COLORS_CHSV = {}
 
 
 def hex2rgb(color: int | str) -> tuple[int, int, int]:
-    # https://github.com/GyverLibs/GRGB/blob/main/src/GRGB.h#L282
     if isinstance(color, str):
         color = int(color.replace('#', ''), 16)
-
-    r = (color >> 16) & 0xFF
-    g = (color >> 8) & 0xFF
-    b = color & 0xFF
-    return r, g, b
+    # https://github.com/GyverLibs/GRGB/blob/main/src/GRGB.h#L282
+    return (color >> 16) & 0xFF, (color >> 8) & 0xFF, color & 0xFF
 
 
-def hex16tohex24(color: int) -> int:
+def hex16tohex24(color: int | str) -> int:
+    if isinstance(color, str):
+        color = int(color.replace('#', ''), 16)
     # https://github.com/GyverLibs/GRGB/blob/main/src/GRGB.h#L292
     return ((color & 0xF800) << 8) | ((color & 0x7E0) << 5) | ((color & 0x1F) << 3)
 
@@ -79,10 +75,7 @@ def rgb2hsv(r, g, b) -> tuple[int, int, int]:
         h = (60 * ((b - r) / difference) + 120) % 360
     elif max_rgb == b:
         h = (60 * ((r - g) / difference) + 240) % 360
-    if max_rgb == 0:
-        s = 0
-    else:
-        s = difference / max_rgb
+    s = 0 if max_rgb == 0 else difference / max_rgb
     return round(h), round(s, 2), round(max_rgb, 2)
 
 

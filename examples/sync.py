@@ -1,4 +1,4 @@
-from GyverLamp2 import Lamp
+from GyverLamp2 import Lamp, rgb2hex
 
 lamp = Lamp(ip='192.168.1.237', log_data_request=True)
 lamp.sync_settings()
