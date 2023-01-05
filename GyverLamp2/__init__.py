@@ -1,4 +1,4 @@
-from .GyverLamp2 import *
+from .__main__ import *
 
 __author__ = 'KirillMonster'
 __version__ = '0.1.4'

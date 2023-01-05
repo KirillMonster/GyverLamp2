@@ -1,12 +1,11 @@
-from socket import AF_INET, SOCK_DGRAM, socket, SOL_SOCKET, SO_BROADCAST, SO_REUSEPORT, IPPROTO_UDP, gethostbyname, \
-    gethostname
-from datetime import datetime
-from json import load as jload, dump as jdump
-from random import randint
-from time import time
-from copy import deepcopy
-from .gcolor import *
-from .config import *
+import socket as _socket
+from datetime import datetime as _datetime
+from json import load as _jload, dump as _jdump
+from random import randint as _randint
+from time import time as _time
+from copy import deepcopy as _deepcopy
+from .gcolor import GColor
+from .config import Config
 from .__exceptions__ import *
 
 
@@ -15,7 +14,7 @@ class Lamp:
                  group_id: int = 1, json_settings_path: str = 'settings.json', log_data_request: bool = False):
 
         self.__key = key
-        self.local_ip = gethostbyname(gethostname())
+        self.local_ip = _socket.gethostbyname(_socket.gethostname())
         self.netmask = netmask
         self.ip = self.__get_broadcast_addr() if ip is None else ip
         self.client_address = None
@@ -23,12 +22,11 @@ class Lamp:
         self.port = self.__gen_port() if port is None else port
         self.__json_settings_path = json_settings_path
         self.__log_data_request = log_data_request
-        self.__settings_data = deepcopy(DEFAULT_SETTINGS_DATA)
-        self.__effects_data = deepcopy(DEFAULT_EFFECTS_DATA)
+        self.__settings_data = _deepcopy(Config.DEFAULT_SETTINGS_DATA)
+        self.__effects_data = _deepcopy(Config.DEFAULT_EFFECTS_DATA)
 
-        self.__sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)
-        self.__sock.setsockopt(SOL_SOCKET, SO_REUSEPORT, 1)
-        self.__sock.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
+        self.__sock = _socket.socket(_socket.AF_INET, _socket.SOCK_DGRAM, _socket.IPPROTO_UDP)
+        self.__sock.setsockopt(_socket.SOL_SOCKET, _socket.SO_BROADCAST, 1)
         self.__sock.bind(('', self.port))
         self.__sock.settimeout(3)
 
@@ -136,7 +134,7 @@ class Lamp:
     def settings(self, default_settings: bool = False, *date, **kwargs):
         date = self.__date_proc(kwargs.get('delay'), *date)
         data = ''
-        settings = DEFAULT_SETTINGS_DATA if default_settings else self.__settings_data
+        settings = Config.DEFAULT_SETTINGS_DATA if default_settings else self.__settings_data
         for key, value in kwargs.items():
             if key not in settings:
                 continue
@@ -150,29 +148,29 @@ class Lamp:
         if not 0 < count < 26:
             raise CountEffectsNotInRangeError()
         data = f'2,{count}'
-        random_num = randint(1, count)
+        random_num = _randint(1, count)
         brightness = kwargs.get('brightness')
         if brightness:
             max_brightness, min_brightness = brightness, brightness
         else:
-            min_brightness = kwargs.get('min_brightness') if kwargs.get('min_brightness') else randint(50, 255)
-            max_brightness = kwargs.get('max_brightness') if kwargs.get('max_brightness') else randint(50, 255)
+            min_brightness = kwargs.get('min_brightness') if kwargs.get('min_brightness') else _randint(50, 255)
+            max_brightness = kwargs.get('max_brightness') if kwargs.get('max_brightness') else _randint(50, 255)
             max_brightness, min_brightness = [max_brightness, min_brightness] if max_brightness > min_brightness else [
                 min_brightness, max_brightness]
         for i in range(count):
-            type_effect = randint(1, 7)
-            fade_brightness = randint(0, 1)
-            brightness = randint(min_brightness, max_brightness)
-            adv_mode = kwargs.get('adv_mode') if kwargs.get('adv_mode') else randint(1, 5)
-            sound_react = kwargs.get('sound_react') if kwargs.get('sound_react') else randint(1, 3)
-            min_signal = kwargs.get('min_signal') if kwargs.get('min_signal') else randint(1, 255)
-            max_signal = kwargs.get('max_signal') if kwargs.get('max_signal') else randint(1, 255)
-            speed = randint(50, 255)
-            palette = randint(1, 26)
-            scale = randint(50, 255)
-            from_center = randint(0, 1)
-            color = randint(0, 255)
-            random_effect = randint(0, 1)
+            type_effect = _randint(1, 7)
+            fade_brightness = _randint(0, 1)
+            brightness = _randint(min_brightness, max_brightness)
+            adv_mode = kwargs.get('adv_mode') if kwargs.get('adv_mode') else _randint(1, 5)
+            sound_react = kwargs.get('sound_react') if kwargs.get('sound_react') else _randint(1, 3)
+            min_signal = kwargs.get('min_signal') if kwargs.get('min_signal') else _randint(1, 255)
+            max_signal = kwargs.get('max_signal') if kwargs.get('max_signal') else _randint(1, 255)
+            speed = _randint(50, 255)
+            palette = _randint(1, 26)
+            scale = _randint(50, 255)
+            from_center = _randint(0, 1)
+            color = _randint(0, 255)
+            random_effect = _randint(0, 1)
             data += f',{type_effect},{fade_brightness},{brightness},{adv_mode},{sound_react},{min_signal},{max_signal},{speed},{palette},{scale},{from_center},{color},{random_effect}'
         data += f',{random_num}'
         date = self.__date_proc(kwargs.get('delay'), *date)
@@ -183,30 +181,32 @@ class Lamp:
         hue, saturation, value = 255, 255, 255
         if kwargs.get('colour') or kwargs.get('color'):
             color = kwargs.get('colour') or kwargs.get('color')
-            if color in COLORS_RGB:
-                hue, saturation, value = rgb2chsv(*COLORS_RGB[color])
+            if color in GColor.colours():
+                hue, saturation, value = GColor.rgb2chsv(*GColor.hex2rgb(GColor.colours()[color]))
         elif kwargs.get('rgb'):
-            hue, saturation, value = rgb2chsv(*kwargs.get('rgb'))
+            hue, saturation, value = GColor.rgb2chsv(*kwargs.get('rgb'))
         elif kwargs.get('hex16'):
-            hue, saturation, value = rgb2chsv(*hex2rgb(hex16tohex24(kwargs.get('hex16'))))
+            hue, saturation, value = GColor.rgb2chsv(*GColor.hex2rgb(GColor.hex16tohex24(kwargs.get('hex16'))))
         elif kwargs.get('hex'):
-            hue, saturation, value = rgb2chsv(*hex2rgb(kwargs.get('hex')))
+            hue, saturation, value = GColor.rgb2chsv(*GColor.hex2rgb(kwargs.get('hex')))
         elif kwargs.get('hsv'):
-            hue, saturation, value = hsv2chsv(*kwargs.get('hsv'))
+            hue, saturation, value = GColor.hsv2chsv(*kwargs.get('hsv'))
         elif kwargs.get('chsv'):
             hue, saturation, value = kwargs.get('chsv')
-        hue, saturation, value = kwargs.get('hue', hue), kwargs.get('saturation', saturation), kwargs.get('value', value)
+
+        hue, saturation = kwargs.get('hue', hue), kwargs.get('saturation', saturation)
+        value = kwargs.get('value') or kwargs.get('value') or value
         type_effect = kwargs.get('type_effect', 2)
         data = f'2,1,{type_effect},1,{value},1,1,0,255,105,2,{saturation},0,{hue},0,1'
         self.__send_request(data, date)
 
     def save_settings_json(self):
         with open(self.__json_settings_path, 'w') as file:
-            jdump(self.__settings_data, file)
+            _jdump(self.__settings_data, file)
 
     def load_settings_json(self):
         with open(self.__json_settings_path, 'r') as file:
-            self.__settings_data = jload(file)
+            self.__settings_data = _jload(file)
 
     def __send_request(self, *args, **kwargs):
         if isinstance(args[0], tuple):
@@ -232,7 +232,7 @@ class Lamp:
             return self.__query_handler()
 
     def __formate_date(self, date):
-        return f'{DAYS_OF_THE_WEEK[date[0]]}, {date[1]}ч, {date[2]}м, {date[3]}с'
+        return f'{Config.DAYS_OF_THE_WEEK[date[0]]}, {date[1]}ч, {date[2]}м, {date[3]}с'
 
     def __format_request_data(self, data):
         data = data.replace('GL,', '', 1)
@@ -241,7 +241,7 @@ class Lamp:
         match data[0]:
             case '0':
                 data = data[1:]
-                msg = f'Управление: {CONTROL_TYPES[data[0]]}'
+                msg = f'Управление: {Config.CONTROL_TYPES[data[0]]}'
                 data[0] = int(data[0])
                 if data[0] in [0, 1, 4, 5]:
                     msg += f', в: {self.__formate_date(data[1:])}'
@@ -261,7 +261,7 @@ class Lamp:
                 msg = 'Настройка: '
                 count_ = 0
                 for i in self.__settings_data.values():
-                    msg += f'{NAME_SETTINGS[count_]}: {i}, '
+                    msg += f'{Config.NAME_SETTINGS[count_]}: {i}, '
                     count_ += 1
             case '2':
                 msg = f'Режимы: кол-во режимов: {data[1]}'
@@ -275,7 +275,7 @@ class Lamp:
                     for i in data:
                         count += 1
                         if count % 14 == 0:
-                            effects.append(deepcopy(temp_effect))
+                            effects.append(_deepcopy(temp_effect))
                             temp_effect.clear()
                             temp_effect.append(i)
                         else:
@@ -284,16 +284,16 @@ class Lamp:
                 for effect in effects:
                     count += 1
 
-                    msg += f'\nРежим #{count}, тип эффекта: {TYPE_EFFECTS[int(effect[0]) - 1]}, понизить яркость: {effect[1]},' \
+                    msg += f'\nРежим #{count}, тип эффекта: {Config.TYPE_EFFECTS[int(effect[0]) - 1]}, понизить яркость: {effect[1]},' \
                            f' яркость {effect[2]}, дополнительно: {effect[3]}, реацкия на звук: {effect[4]},' \
                            f' мин сигнал: {effect[5]}, макс сигнал: {effect[6]}, скорость {effect[7]},' \
-                           f' палитра: {TYPE_PALLETES[int(effect[8]) - 1]}, масштаб: {effect[9]}, из центра: {effect[10]},' \
+                           f' палитра: {Config.TYPE_PALLETES[int(effect[8]) - 1]}, масштаб: {effect[9]}, из центра: {effect[10]},' \
                            f' цвет: {effect[11]}, случайный: {effect[12]}'
 
         return msg
 
     def __now_date(self, delay=0):
-        day = datetime.fromtimestamp(int(time() + 1 + delay))
+        day = _datetime.fromtimestamp(int(_time() + 1 + delay))
         return f'{day.isoweekday()},{day.hour},{day.minute},{day.second}'
 
     def __date_proc(self, delay, *date):

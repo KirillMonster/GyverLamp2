@@ -1,5 +1,5 @@
 from GyverLamp2 import Lamp
-from GyverLamp2.gcolor import COLORS_RU
+from GyverLamp2 import GColor
 from aiogram import Bot, types
 from aiogram.dispatcher import Dispatcher
 from aiogram.utils import executor
@@ -48,8 +48,8 @@ async def handler(message: types.Message):
                 [KeyboardButton(text='Розовый')]
             ]
             await message.answer('Выбор цвета', reply_markup=ReplyKeyboardMarkup(keyboard=kb))
-    if msg in COLORS_RU.keys():
-        lamp.palette(color=COLORS_RU[msg])
+    if msg in GColor.colours().keys():
+        lamp.color_fill(color=GColor.colours_ru2eng()[msg])
         await message.answer('Управление', reply_markup=ReplyKeyboardMarkup(keyboard=main_menu))
 
 
