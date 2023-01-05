@@ -4,9 +4,9 @@ from json import load as _jload, dump as _jdump
 from random import randint as _randint
 from time import time as _time
 from copy import deepcopy as _deepcopy
-from .gcolor import GColor
-from .config import Config
-from .__exceptions__ import *
+from .gcolor import GColor as _GColor
+from .config import Config as _Config
+from .errors import *
 
 
 class Lamp:
@@ -22,8 +22,8 @@ class Lamp:
         self.port = self.__gen_port() if port is None else port
         self.__json_settings_path = json_settings_path
         self.__log_data_request = log_data_request
-        self.__settings_data = _deepcopy(Config.DEFAULT_SETTINGS_DATA)
-        self.__effects_data = _deepcopy(Config.DEFAULT_EFFECTS_DATA)
+        self.__settings_data = _deepcopy(_Config.DEFAULT_SETTINGS_DATA)
+        self.__effects_data = _deepcopy(_Config.DEFAULT_EFFECTS_DATA)
 
         self.__sock = _socket.socket(_socket.AF_INET, _socket.SOCK_DGRAM, _socket.IPPROTO_UDP)
         self.__sock.setsockopt(_socket.SOL_SOCKET, _socket.SO_BROADCAST, 1)
@@ -134,7 +134,7 @@ class Lamp:
     def settings(self, default_settings: bool = False, *date, **kwargs):
         date = self.__date_proc(kwargs.get('delay'), *date)
         data = ''
-        settings = Config.DEFAULT_SETTINGS_DATA if default_settings else self.__settings_data
+        settings = _Config.DEFAULT_SETTINGS_DATA if default_settings else self.__settings_data
         for key, value in kwargs.items():
             if key not in settings:
                 continue
@@ -181,16 +181,16 @@ class Lamp:
         hue, saturation, value = 255, 255, 255
         if kwargs.get('colour') or kwargs.get('color'):
             color = kwargs.get('colour') or kwargs.get('color')
-            if color in GColor.colours():
-                hue, saturation, value = GColor.rgb2chsv(*GColor.hex2rgb(GColor.colours()[color]))
+            if color in _GColor.colours():
+                hue, saturation, value = _GColor.rgb2chsv(*_GColor.hex2rgb(_GColor.colours()[color]))
         elif kwargs.get('rgb'):
-            hue, saturation, value = GColor.rgb2chsv(*kwargs.get('rgb'))
+            hue, saturation, value = _GColor.rgb2chsv(*kwargs.get('rgb'))
         elif kwargs.get('hex16'):
-            hue, saturation, value = GColor.rgb2chsv(*GColor.hex2rgb(GColor.hex16tohex24(kwargs.get('hex16'))))
+            hue, saturation, value = _GColor.rgb2chsv(*_GColor.hex2rgb(_GColor.hex16tohex24(kwargs.get('hex16'))))
         elif kwargs.get('hex'):
-            hue, saturation, value = GColor.rgb2chsv(*GColor.hex2rgb(kwargs.get('hex')))
+            hue, saturation, value = _GColor.rgb2chsv(*_GColor.hex2rgb(kwargs.get('hex')))
         elif kwargs.get('hsv'):
-            hue, saturation, value = GColor.hsv2chsv(*kwargs.get('hsv'))
+            hue, saturation, value = _GColor.hsv2chsv(*kwargs.get('hsv'))
         elif kwargs.get('chsv'):
             hue, saturation, value = kwargs.get('chsv')
 
@@ -232,7 +232,7 @@ class Lamp:
             return self.__query_handler()
 
     def __formate_date(self, date):
-        return f'{Config.DAYS_OF_THE_WEEK[date[0]]}, {date[1]}ч, {date[2]}м, {date[3]}с'
+        return f'{_Config.DAYS_OF_THE_WEEK[date[0]]}, {date[1]}ч, {date[2]}м, {date[3]}с'
 
     def __format_request_data(self, data):
         data = data.replace('GL,', '', 1)
@@ -241,7 +241,7 @@ class Lamp:
         match data[0]:
             case '0':
                 data = data[1:]
-                msg = f'Управление: {Config.CONTROL_TYPES[data[0]]}'
+                msg = f'Управление: {_Config.CONTROL_TYPES[data[0]]}'
                 data[0] = int(data[0])
                 if data[0] in [0, 1, 4, 5]:
                     msg += f', в: {self.__formate_date(data[1:])}'
@@ -261,7 +261,7 @@ class Lamp:
                 msg = 'Настройка: '
                 count_ = 0
                 for i in self.__settings_data.values():
-                    msg += f'{Config.NAME_SETTINGS[count_]}: {i}, '
+                    msg += f'{_Config.NAME_SETTINGS[count_]}: {i}, '
                     count_ += 1
             case '2':
                 msg = f'Режимы: кол-во режимов: {data[1]}'
@@ -284,10 +284,10 @@ class Lamp:
                 for effect in effects:
                     count += 1
 
-                    msg += f'\nРежим #{count}, тип эффекта: {Config.TYPE_EFFECTS[int(effect[0]) - 1]}, понизить яркость: {effect[1]},' \
+                    msg += f'\nРежим #{count}, тип эффекта: {_Config.TYPE_EFFECTS[int(effect[0]) - 1]}, понизить яркость: {effect[1]},' \
                            f' яркость {effect[2]}, дополнительно: {effect[3]}, реацкия на звук: {effect[4]},' \
                            f' мин сигнал: {effect[5]}, макс сигнал: {effect[6]}, скорость {effect[7]},' \
-                           f' палитра: {Config.TYPE_PALLETES[int(effect[8]) - 1]}, масштаб: {effect[9]}, из центра: {effect[10]},' \
+                           f' палитра: {_Config.TYPE_PALLETES[int(effect[8]) - 1]}, масштаб: {effect[9]}, из центра: {effect[10]},' \
                            f' цвет: {effect[11]}, случайный: {effect[12]}'
 
         return msg

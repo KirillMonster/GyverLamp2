@@ -1,6 +1,6 @@
 from GyverLamp2 import Lamp
 from GyverLamp2.config import Config
-from GyverLamp2.gcolor import GColor
+from GyverLamp2 import GColor
 from time import sleep
 
 lamp = Lamp()
