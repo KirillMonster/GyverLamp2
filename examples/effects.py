@@ -1,6 +1,6 @@
 from GyverLamp2 import Lamp
 from GyverLamp2.config import Config
-from GyverLamp2 import GColor
+from GyverLamp2.gcolor import COLOURS, COLOURS_RU2ENG
 from time import sleep
 
 lamp = Lamp()
@@ -29,9 +29,9 @@ for i in range(7):
 
 sleep(5)
 print('Отображение разных цветов')
-for color in GColor.colours().keys():
+for color in COLOURS.keys():
     lamp.color_fill(color=color, brightness=brightness)
-    print(f'Цвет: {GColor.colours_eng2ru()[color]}')
+    print(f'Цвет: {COLOURS_RU2ENG[color]}')
     sleep(3)
 
 sleep(5)

@@ -2,16 +2,18 @@ import socket as _socket
 from datetime import datetime as _datetime
 from json import load as _jload, dump as _jdump
 from random import randint as _randint
-from time import time as _time
+from time import time as _time, sleep as _sleep
 from copy import deepcopy as _deepcopy
-from .gcolor import GColor as _GColor
+from threading import Thread as _Thread
+from .gcolor import *
 from .config import Config as _Config
 from .errors import *
 
 
 class Lamp:
     def __init__(self, key: str = 'GL', ip: str | None = None, port: int | None = None, netmask: str = '255.255.255.0',
-                 group_id: int = 1, json_settings_path: str = 'settings.json', log_data_request: bool = False):
+                 group_id: int = 1, json_settings_path: str = 'settings.json', log_data_request: bool = False,
+                 enable_task_list=False):
 
         self.__key = key
         self.local_ip = _socket.gethostbyname(_socket.gethostname())
@@ -20,10 +22,17 @@ class Lamp:
         self.client_address = None
         self.__group_id = group_id
         self.port = self.__gen_port() if port is None else port
+        self.enable_task_list = enable_task_list
+        self.__last_request_time = 0
         self.__json_settings_path = json_settings_path
         self.__log_data_request = log_data_request
         self.__settings_data = _deepcopy(_Config.DEFAULT_SETTINGS_DATA)
         self.__effects_data = _deepcopy(_Config.DEFAULT_EFFECTS_DATA)
+
+        if self.enable_task_list:
+            self.__task_list = []
+            self.__task_list_thread = _Thread(target=self.__processing_task_list)
+            self.__task_list_thread.start()
 
         self.__sock = _socket.socket(_socket.AF_INET, _socket.SOCK_DGRAM, _socket.IPPROTO_UDP)
         self.__sock.setsockopt(_socket.SOL_SOCKET, _socket.SO_BROADCAST, 1)
@@ -181,16 +190,16 @@ class Lamp:
         hue, saturation, value = 255, 255, 255
         if kwargs.get('colour') or kwargs.get('color'):
             color = kwargs.get('colour') or kwargs.get('color')
-            if color in _GColor.colours():
-                hue, saturation, value = _GColor.rgb2chsv(*_GColor.hex2rgb(_GColor.colours()[color]))
+            if color in COLOURS:
+                hue, saturation, value = rgb2chsv(*hex2rgb(COLOURS[color]))
         elif kwargs.get('rgb'):
-            hue, saturation, value = _GColor.rgb2chsv(*kwargs.get('rgb'))
+            hue, saturation, value = rgb2chsv(*kwargs.get('rgb'))
         elif kwargs.get('hex16'):
-            hue, saturation, value = _GColor.rgb2chsv(*_GColor.hex2rgb(_GColor.hex16tohex24(kwargs.get('hex16'))))
+            hue, saturation, value = rgb2chsv(*hex2rgb(hex16tohex24(kwargs.get('hex16'))))
         elif kwargs.get('hex'):
-            hue, saturation, value = _GColor.rgb2chsv(*_GColor.hex2rgb(kwargs.get('hex')))
+            hue, saturation, value = rgb2chsv(*hex2rgb(kwargs.get('hex')))
         elif kwargs.get('hsv'):
-            hue, saturation, value = _GColor.hsv2chsv(*kwargs.get('hsv'))
+            hue, saturation, value = hsv2chsv(*kwargs.get('hsv'))
         elif kwargs.get('chsv'):
             hue, saturation, value = kwargs.get('chsv')
 
@@ -215,6 +224,10 @@ class Lamp:
         if len(args) > 1 and '+' in args[1]:
             delay = int(args[1].split('+')[1])
 
+        if not self.__check_time(delay):
+            self.__task_list.insert(0, args)
+            return
+
         data = []
         for i in args:
             if 'now' in i:
@@ -224,10 +237,9 @@ class Lamp:
         if self.__log_data_request:
             print(message)
             print(self.__format_request_data(message))
-
         for i in range(5):
             self.__sock.sendto(message.encode(), (self.ip, self.port))
-
+        self.__last_request_time = int(_time() * 1000)
         if kwargs.get('response'):
             return self.__query_handler()
 
@@ -313,3 +325,15 @@ class Lamp:
             return result, address
         except TimeoutError:
             raise TimeoutError('Вышло время получения ответа')
+
+    def __check_time(self, delay=0):
+        return self.enable_task_list and int(_time() * 1000) - self.__last_request_time > 500 + delay
+
+    def __processing_task_list(self):
+        while True:
+            if len(self.__task_list) == 0:
+                continue
+            data = self.__task_list[0]
+            self.__task_list.pop(0)
+            self.__send_request(data)
+            _sleep(0.1)

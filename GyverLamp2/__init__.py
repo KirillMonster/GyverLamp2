@@ -1,5 +1,4 @@
 from .__main__ import *
-from .gcolor import *
 from .errors import *
 from .config import *
 
