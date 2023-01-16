@@ -4,7 +4,7 @@ description = 'Python module for control GyverLamp2'
 
 setuptools.setup(
     name="GyverLamp2",
-    version="0.1.5",
+    version="0.1.6",
     author="KirillMonster",
     author_email="k1rill_monster@mail.ru",
     packages=["GyverLamp2"],
