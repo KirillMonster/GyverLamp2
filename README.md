@@ -1,5 +1,7 @@
 ![](https://github.com/KirillMonster/GyverLamp2/blob/master/assets/banner.png)
 ![pypi](https://img.shields.io/pypi/v/gyverlamp2.svg)
+# Проект будет переписан в будущем
+
 ## 💡 GyverLamp2
 📚 Библиотека для управления лампами GyverLamp2 на Python
 
