@@ -11,7 +11,7 @@ from .errors import *
 
 
 class Lamp:
-    def __init__(self, key: str = 'GL', ip: str | None = None, port: int | None = None, netmask: str = '255.255.255.0',
+    def __init__(self, key: str = 'GL', ip: str | None = None, port: int | None = None, netmask: str = '255.255.255.255',
                  group_id: int = 1, json_settings_path: str = 'settings.json', log_data_request: bool = False,
                  enable_task_list=False):
 
